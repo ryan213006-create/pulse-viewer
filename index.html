@@ -30,6 +30,8 @@
   .pulse-line{flex:1;min-width:60px;height:22px;opacity:.5}
   .stamp{font-family:var(--mono);font-size:12px;color:var(--ink3);text-align:right}
   .stamp b{color:var(--ink2)}
+  .author{color:var(--signal);font-size:12.5px;font-family:var(--sans);
+    display:inline-block;margin-bottom:5px;letter-spacing:.3px}
 
   /* ---- layout ---- */
   .wrap{display:grid;grid-template-columns:264px 1fr;gap:0;min-height:calc(100vh - 80px)}
@@ -182,7 +184,7 @@
     <polyline points="0,11 40,11 48,11 54,3 60,19 66,6 72,11 110,11 118,11 124,4 130,18 136,11 200,11"
       fill="none" stroke="var(--signal)" stroke-width="1.5"/>
   </svg>
-  <div class="stamp">資料快照 <b id="stamp-date">—</b><br>共 <b id="stamp-total">—</b> 篇入庫</div>
+  <div class="stamp"><span class="author">製作：柯廷儒　新北市消防局 南勢專責救護隊　高級救護技術員</span><br>資料快照 <b id="stamp-date">—</b>　·　共 <b id="stamp-total">—</b> 篇入庫</div>
 </header>
 
 <div class="wrap">
