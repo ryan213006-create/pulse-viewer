@@ -221,6 +221,15 @@
     .mobile-only{display:inline-block;padding:10px 14px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;font:inherit;cursor:pointer}
     #filter-toggle{margin-bottom:16px}.section-heading{display:block}.section-heading>p{margin-top:8px}
   }
+  .score{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px;font-weight:600;color:var(--ink2)}
+  .score.unknown{color:var(--ink3);background:var(--panel2);padding:3px 7px;border-radius:4px}
+  .score-help{font:inherit;border:1px solid var(--ink3);color:var(--ink3);background:transparent;border-radius:50%;width:25px;height:25px;cursor:pointer}
+  .score-help-text{font:inherit;font-size:13px;color:var(--signal);background:transparent;border:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px}
+  .crel{align-items:center;flex-wrap:wrap;gap:12px}
+  .unknown-count,.filter-note{font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:16px}
+  .unknown-toggle{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;margin:12px 0 6px}
+  .unknown-toggle input{width:18px;height:18px;accent-color:var(--signal)}
+  .unknown-explainer{background:var(--panel2);padding:12px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -274,6 +283,8 @@
         <button data-v="3">3</button>
       </div>
     </div>
+      <label class="unknown-toggle"><input type="checkbox" id="include-unknown"> 包含未判定</label>
+      <p class="filter-note">設定分數門檻時，勾選可保留該分數未判定的文獻；其他條件仍須符合。</p>
     </details>
     <div class="fgroup">
       <div class="seg" id="f-review" style="margin-bottom:8px">
@@ -307,6 +318,7 @@
         </select>
       </div>
     </div>
+    <p id="unknown-count" class="unknown-count" aria-live="polite"></p>
     <div id="list"></div>
     <div class="footnote" id="foot"></div>
   </main>
@@ -318,6 +330,7 @@
   <button class="guide-close" id="guide-close">✕</button>
   <h2>評分說明</h2>
   <div class="sub">這些分數怎麼來的？如何正確使用？</div>
+  <p class="unknown-explainer"><strong>未判定</strong>：模型依摘要無法判定。這與 0 分不同，不能解讀為品質低或沒有相關性。</p>
 
   <h3>品質分數（1–5 分）</h3>
   <p>依研究設計的嚴謹度分級，對照固定錨點給分，每篇的「評分理由」會說明是對照哪個特徵。</p>
@@ -367,7 +380,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
 (function(){
   const $ = s => document.querySelector(s);
   const state = { q:'', topics:new Set(), designs:new Set(),
-    quality:0, clin:0, edu:0, review:0, sort:'quality', language:'zh' };
+    quality:0, clin:0, edu:0, review:0, sort:'quality', language:'zh', includeUnknown:false };
   document.getElementById('stamp-date').textContent = PULSE_META.generated;
   document.getElementById('stamp-total').textContent = PULSE_META.total;
   document.getElementById('cnt-total').textContent = PULSE_META.total;
@@ -434,6 +447,8 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     state.topics.forEach(t=>items.push([t,()=>state.topics.delete(t)]));
     state.designs.forEach(d=>items.push([PULSE_META.design_label[d],()=>state.designs.delete(d)]));
     for(const [key,label] of [['quality','品質'],['clin','臨床'],['edu','教育']])if(state[key])items.push([label+' ≥ '+state[key],()=>state[key]=0]);
+    $('#include-unknown').checked=state.includeUnknown;
+    if(state.includeUnknown)items.push(['包含未判定',()=>state.includeUnknown=false]);
     if(state.review)items.push(['僅待複核',()=>state.review=0]);
     const box=$('#selected-filters');box.replaceChildren();
     items.forEach(([label,remove])=>{const b=document.createElement('button');b.type='button';b.textContent=label+' ×';b.setAttribute('aria-label','移除 '+label);b.onclick=()=>{remove();render();$('#q').focus();};box.appendChild(b);});
@@ -453,11 +468,12 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
   }
   segBind('f-quality','quality'); segBind('f-clin','clin');
   segBind('f-edu','edu'); segBind('f-review','review');
+  $('#include-unknown').onchange=e=>{state.includeUnknown=e.target.checked;render();};
   $('#q').oninput=e=>{state.q=e.target.value.trim().toLowerCase();render();};
   $('#sort').onchange=e=>{state.sort=e.target.value;render();};
   $('#reset').onclick=()=>{
     state.q='';state.topics.clear();state.designs.clear();
-    state.quality=0;state.clin=0;state.edu=0;state.review=0;
+    state.quality=0;state.clin=0;state.edu=0;state.review=0;state.includeUnknown=false;
     $('#q').value='';
     document.querySelectorAll('.chip.on').forEach(c=>c.classList.remove('on'));
     ['f-quality','f-clin','f-edu','f-review'].forEach(id=>{
@@ -472,9 +488,9 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     }
     if(state.topics.size && !a.topics.some(t=>state.topics.has(t))) return false;
     if(state.designs.size && !state.designs.has(a.design)) return false;
-    if(state.quality && (a.quality||0) < state.quality) return false;
-    if(state.clin && (a.rel_clinical||0) < state.clin) return false;
-    if(state.edu && (a.rel_education||0) < state.edu) return false;
+    if(state.quality && !(state.includeUnknown && isUnknown(a.quality)) && (a.quality||0) < state.quality) return false;
+    if(state.clin && !(state.includeUnknown && isUnknown(a.rel_clinical)) && (a.rel_clinical||0) < state.clin) return false;
+    if(state.edu && !(state.includeUnknown && isUnknown(a.rel_education)) && (a.rel_education||0) < state.edu) return false;
     if(state.review && !a.review) return false;
     return true;
   }
@@ -490,21 +506,21 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     const zh=(a.title_zh||'').trim(), en=(a.title||'').trim();
     return state.language==='zh' && zh ? [zh,en] : [en||zh,zh && en ? zh : ''];
   }
-  function qdots(n){
-    n=n||0; let h='<div class="qdots" title="品質 '+(n||'—')+'/5">';
-    for(let i=1;i<=5;i++) h+='<div class="qdot'+(i<=n?' fill':'')+'"></div>';
-    return h+'</div>';
+  function isUnknown(n){return n==null || n==='' || n==='unclear';}
+  function score(n,max,label,field){
+    const unknown=isUnknown(n);
+    const text=label+' '+(unknown?'未判定':esc(n)+'/'+max);
+    return '<span class="score'+(unknown?' unknown':'')+'" data-score="'+field+'" data-unknown="'+unknown+'">'+text+
+      (unknown?'<button class="score-help" aria-label="'+label+'未判定：模型依摘要無法判定。開啟評分說明" title="模型依摘要無法判定">?</button>':'')+'</span>';
   }
-  function relBar(n,cls){
-    n=n||0; let h='<span class="bar">';
-    for(let i=1;i<=3;i++) h+='<span class="bseg'+(i<=n?' '+cls:'')+'"></span>';
-    return h+'</span>';
-  }
+  function qdots(n){return score(n,5,'品質','quality');}
+  function relBar(n,cls){return score(n,3,cls==='c'?'臨床':'教育',cls==='c'?'clinical':'education');}
   function esc(s){return (s==null?'':''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
   function render(){
     syncFilters();
     const rows=PULSE_DATA.filter(match).sort(sorters[state.sort]);
     $('#cnt').textContent=rows.length;
+    $('#unknown-count').textContent='目前結果中的未判定：品質 '+rows.filter(a=>isUnknown(a.quality)).length+' 篇 · 臨床 '+rows.filter(a=>isUnknown(a.rel_clinical)).length+' 篇 · 教育 '+rows.filter(a=>isUnknown(a.rel_education)).length+' 篇';
     const list=$('#list');
     if(!rows.length){
       list.innerHTML='<div class="empty"><b>沒有符合的文獻</b>試著放寬篩選條件，或移除上方的已選條件。</div>';
@@ -519,8 +535,8 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
         (secondary?'<p class="ctitle-zh">'+esc(secondary)+'</p>':'')+'</div>'+flag+'</div>'+
         '<p class="cjournal">'+esc(a.journal)+(a.year?' · '+esc(a.year):'')+'</p>'+
         '<div class="cmeta"><span class="tag design">'+esc(a.design_label)+'</span>'+topics+'</div>'+
-        '<div class="card-bottom"><div class="crel">'+qdots(a.quality)+'臨床'+relBar(a.rel_clinical,'c')+
-        ' 教育'+relBar(a.rel_education,'e')+(a.sample_size?' <span>n='+esc(a.sample_size)+'</span>':'')+'</div>'+
+        '<div class="card-bottom"><div class="crel">'+qdots(a.quality)+relBar(a.rel_clinical,'c')+
+        relBar(a.rel_education,'e')+(a.sample_size?' <span>n='+esc(a.sample_size)+'</span>':'')+'<button class="score-help-text">評分說明</button></div>'+
         '<div class="card-actions"><a class="pubmed" href="https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(a.pmid)+'/" target="_blank" rel="noopener noreferrer">PubMed ↗</a>'+
         '<button class="view-analysis" aria-haspopup="dialog">查看分析 <span aria-hidden="true">→</span></button></div></div></article>';
     }).join('');
@@ -587,8 +603,8 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     $('#detail').scrollTop=0;
   }
   function row(k,v,mono){return '<div class="drow"><div class="dk">'+k+'</div><div class="dv'+(mono?' mono':'')+'">'+esc(v)+'</div></div>';}
-  function qdotsInline(n){n=n||0;let h='<span style="margin-left:10px;vertical-align:middle">';for(let i=1;i<=5;i++)h+='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px;background:'+(i<=n?'var(--signal)':'var(--line)')+'"></span>';return h+'</span>';}
-  function relBarBig(n,cls){n=n||0;let h='<span style="display:inline-flex;gap:3px;vertical-align:middle">';const col=cls==='c'?'var(--rose)':'var(--sky)';for(let i=1;i<=3;i++)h+='<span style="width:26px;height:8px;border-radius:2px;background:'+(i<=n?col:'var(--line)')+'"></span>';return h+'</span> <span style="font-family:var(--mono);font-size:12px;color:var(--ink3);margin-left:6px">'+n+'/3</span>';}
+  function qdotsInline(n){return qdots(n)+' <button class="score-help-text">評分說明</button>';}
+  function relBarBig(n,cls){return relBar(n,cls);}
   function closeDetail(){$('#overlay').classList.remove('on');$('#detail').classList.remove('on');}
   $('#overlay').onclick=closeDetail;
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail();});
@@ -597,6 +613,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
   function openGuide(){guideOv.classList.add('on');guideEl.classList.add('on');}
   function closeGuide(){guideOv.classList.remove('on');guideEl.classList.remove('on');}
   $('#help-btn').onclick=openGuide;
+  document.addEventListener('click',e=>{if(e.target.closest('.score-help,.score-help-text'))openGuide();});
   $('#guide-close').onclick=closeGuide;
   guideOv.onclick=closeGuide;
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeGuide();});
