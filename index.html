@@ -40,7 +40,7 @@ details.fgroup,.score-filters{border-top:1px solid var(--line);margin-bottom:12p
 .reset{width:100%;padding:10px 6px;margin-top:8px;font-size:13px;border:1px solid var(--control-line);border-radius:6px;background:var(--clear);color:var(--ink2)}
 .unknown-toggle{display:flex;align-items:center;gap:8px;font-size:14px;margin:12px 0 6px;cursor:pointer}.unknown-toggle input{width:18px;height:18px;accent-color:var(--signal)}
 .filter-note{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:16px}
-.section-heading{margin-bottom:24px}.eyebrow{font-size:12px;letter-spacing:2px;color:var(--signal);font-weight:700;margin-bottom:6px}.section-heading h1{font-size:28px;line-height:1.4;letter-spacing:.5px}.section-heading>p{font-size:14px;color:var(--ink2);margin-top:8px}
+.section-heading{margin-bottom:24px}.section-heading h1{font-size:28px;line-height:1.4;letter-spacing:.5px}.section-heading>p{font-size:14px;color:var(--ink2);margin-top:8px}
 .search-area{margin-bottom:20px}.search-area .fgroup{margin:0}.search-area .flabel{font-size:13px;font-weight:400;color:var(--ink2);margin-bottom:7px}
 .search{width:100%;padding:13px 16px;background:var(--panel);border:1px solid var(--control-line);border-radius:8px;font-size:16px;color:var(--ink)}.search::placeholder{color:var(--ink2)}
 .selected-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.selected-filters[hidden]{display:none}.selected-filters button{font-size:13px;background:var(--selected);border:1px solid var(--signal);border-radius:6px;padding:6px 10px;color:var(--signal-dim)}
@@ -108,7 +108,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
     <details class="score-filters" open><summary>評分條件 <span id="scores-selected"></span></summary>
     <div class="fgroup">
       <label class="flabel">品質分數（≥）</label>
-      <div class="seg" id="f-quality">
+      <div class="seg" role="group" aria-label="品質分數門檻" id="f-quality">
         <button data-v="0" class="on">全部</button>
         <button data-v="3">≥3</button>
         <button data-v="4">≥4</button>
@@ -117,7 +117,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
     </div>
     <div class="fgroup">
       <label class="flabel">臨床相關（≥）</label>
-      <div class="seg" id="f-clin">
+      <div class="seg" role="group" aria-label="臨床相關門檻" id="f-clin">
         <button data-v="0" class="on">全部</button>
         <button data-v="1">≥1</button>
         <button data-v="2">≥2</button>
@@ -126,7 +126,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
     </div>
     <div class="fgroup">
       <label class="flabel">教育相關（≥）</label>
-      <div class="seg" id="f-edu">
+      <div class="seg" role="group" aria-label="教育相關門檻" id="f-edu">
         <button data-v="0" class="on">全部</button>
         <button data-v="1">≥1</button>
         <button data-v="2">≥2</button>
@@ -137,7 +137,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
       <p class="filter-note">設定分數門檻時，勾選可保留該分數未判定的文獻；其他條件仍須符合。</p>
     </details>
     <div class="fgroup">
-      <div class="seg" id="f-review" style="margin-bottom:8px">
+      <div class="seg" role="group" aria-label="人工複核條件" id="f-review" style="margin-bottom:8px">
         <button data-v="0" class="on">不限複核</button>
         <button data-v="1">僅待複核</button>
       </div>
@@ -146,7 +146,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
   </aside>
 
   <main id="main">
-    <section class="search-area" aria-label="搜尋文獻"><div class="section-heading"><div><p class="eyebrow">PULSE LIBRARY</p><h1>探索院前實證</h1></div><p>從文獻出發，讓專業判讀更有依據。</p></div>
+    <section class="search-area" aria-label="搜尋文獻"><div class="section-heading"><div><h1>探索院前實證</h1></div><p>從文獻出發，讓專業判讀更有依據。</p></div>
     <div class="fgroup">
       <label class="flabel" for="q">關鍵字（標題）</label>
       <input class="search" id="q" placeholder="中英文關鍵字皆可…" autocomplete="off">
@@ -435,13 +435,13 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
       '<div class="drow"><div class="dk">教育相關</div><div class="dv">'+relBarBig(a.rel_education,'e')+'</div></div>'+
       '</div>'+
       '<div class="dsection"><div class="dh">族群</div>'+
-      row('樣本數',a.sample_size!=null?'n = '+a.sample_size:'—',true)+
-      row('年齡層',a.age_group||'—')+
-      row('場域',a.setting||'—')+
-      row('國家',a.country||'—')+
+      row('樣本數',a.sample_size!=null?'n = '+a.sample_size:'未判定',true)+
+      row('年齡層',a.age_group||'未判定')+
+      row('場域',a.setting||'未判定')+
+      row('國家',a.country||'未判定')+
       '</div>'+
       '<div class="dsection"><div class="dh">結果</div>'+
-      row('主要結局',a.primary_outcome||'—')+
+      row('主要結局',a.primary_outcome||'未判定')+
       (a.effect_size?row('效果量',a.effect_size,true):'')+
       (findHtml?'<div class="dh" style="margin-top:12px;color:var(--ink3)">關鍵數據</div>'+findHtml:'')+
       '</div>'+
@@ -455,7 +455,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     $('#detail').showModal();
     $('#detail').scrollTop=0;
   }
-  function row(k,v,mono){return '<div class="drow"><div class="dk">'+k+'</div><div class="dv'+(mono?' mono':'')+'">'+esc(v)+'</div></div>';}
+  function row(k,v,mono){return '<div class="drow"><div class="dk">'+k+'</div><div class="dv'+(mono?' mono':'')+'">'+esc(isUnknown(v)?'未判定':v)+'</div></div>';}
   function qdotsInline(n){return qdots(n)+' <button class="score-help-text">評分說明</button>';}
   function relBarBig(n,cls){return relBar(n,cls);}
   function closeDetail(){$('#detail').close();}
