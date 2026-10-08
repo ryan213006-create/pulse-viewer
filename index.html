@@ -414,7 +414,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
         '<div class="cmeta"><span class="tag design">'+esc(a.design_label)+'</span>'+topics+'</div>'+
         '<div class="card-bottom"><div class="crel">'+qdots(a.quality)+relBar(a.rel_clinical,'c')+
         relBar(a.rel_education,'e')+(a.sample_size?' <span>n='+esc(a.sample_size)+'</span>':'')+'<button class="score-help-text">評分說明</button></div>'+
-        '<div class="card-actions"><a class="pubmed" href="https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(a.pmid)+'/" target="_blank" rel="noopener noreferrer">PubMed ↗</a>'+
+        '<div class="card-actions">'+(/^\d+$/.test(''+a.pmid)?'<a class="pubmed" href="https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(a.pmid)+'/" target="_blank" rel="noopener noreferrer">PubMed ↗</a>':(a.doi?'<a class="pubmed" href="https://doi.org/'+esc(a.doi)+'" target="_blank" rel="noopener noreferrer">DOI ↗</a>':''))+
         '<button class="view-analysis" aria-haspopup="dialog">查看分析 <span aria-hidden="true">→</span></button></div></div></article>';
     }).join('');
     list.querySelectorAll('.view-analysis').forEach(b=>b.onclick=()=>openDetail(b.closest('.card').dataset.pmid));
@@ -437,10 +437,10 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     if(a.key_findings&&a.key_findings.length)
       findHtml='<ul class="dfind">'+a.key_findings.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>';
     const doiLink=a.doi?'<a class="dlink" href="https://doi.org/'+esc(a.doi)+'" target="_blank" rel="noopener">DOI 原文 ↗</a>':'';
-    const pubmedLink='<a class="dlink" href="https://pubmed.ncbi.nlm.nih.gov/'+esc(a.pmid)+'" target="_blank" rel="noopener" style="margin-left:8px">PubMed ↗</a>';
+    const pubmedLink=/^\d+$/.test(''+a.pmid)?'<a class="dlink" href="https://pubmed.ncbi.nlm.nih.gov/'+esc(a.pmid)+'" target="_blank" rel="noopener" style="margin-left:8px">PubMed ↗</a>':'';
     $('#detail').innerHTML=
       '<button class="dclose" id="dclose" aria-label="關閉文獻分析">✕</button>'+
-      '<div class="dpmid">PMID '+esc(a.pmid)+(a.source?'<span class="dsrc">'+esc(a.source)+'</span>':'')+(a.review?'　·　⚠ 待人工複核':'')+'</div>'+
+      '<div class="dpmid">'+(/^\d+$/.test(''+a.pmid)?'PMID '+esc(a.pmid)+(a.source?'<span class="dsrc">'+esc(a.source)+'</span>':''):esc(a.source||'')+' '+esc((''+a.pmid).replace(/^CINAHL_/,'')))+(a.review?'　·　⚠ 待人工複核':'')+'</div>'+
       '<h2 class="dtitle" id="detail-title">'+esc(primary)+'</h2>'+
       (secondary?'<div class="dtitle-zh">'+esc(secondary)+'</div>':'')+
       '<div class="djournal">'+esc(a.journal)+(a.year?'　·　'+a.year:'')+'</div>'+
