@@ -187,6 +187,17 @@
     border:1px solid var(--line);color:var(--ink2);width:32px;height:32px;border-radius:8px;
     cursor:pointer;font-size:17px;line-height:1;transition:all .12s}
   .guide-close:hover{border-color:var(--rose);color:var(--rose)}
+  .card::before{display:none}
+  .card{cursor:default}
+  .card:hover{transform:none}
+  .ctitle{font-size:19px;line-height:1.6}
+  .ctitle-zh{font-size:14px;line-height:1.65;margin-top:6px}
+  .cjournal{margin-bottom:12px;font-style:normal}
+  .card-bottom,.card-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .card-bottom{justify-content:space-between;margin-top:16px}
+  .view-analysis,.language select{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--ink);cursor:pointer}
+  .pubmed{color:var(--sky);font-size:14px}
+  .language{font-size:14px}
 </style>
 </head>
 <body>
@@ -252,6 +263,7 @@
 
   <main>
     <div class="toolbar">
+      <label class="language">標題語言 <select id="language"><option value="zh">中文優先</option><option value="en">英文優先</option></select></label>
       <div class="count"><b id="cnt">0</b> / <span id="cnt-total">0</span> 篇符合</div>
       <div class="sortsel">
         <span>排序</span>
@@ -324,7 +336,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
 (function(){
   const $ = s => document.querySelector(s);
   const state = { q:'', topics:new Set(), designs:new Set(),
-    quality:0, clin:0, edu:0, review:0, sort:'quality' };
+    quality:0, clin:0, edu:0, review:0, sort:'quality', language:'zh' };
   document.getElementById('stamp-date').textContent = PULSE_META.generated;
   document.getElementById('stamp-total').textContent = PULSE_META.total;
   document.getElementById('cnt-total').textContent = PULSE_META.total;
@@ -407,6 +419,11 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     year:(a,b)=>(b.year||0)-(a.year||0),
     pmid:(a,b)=>(''+a.pmid).localeCompare(''+b.pmid),
   };
+  $('#language').onchange=e=>{state.language=e.target.value;render();};
+  function titles(a){
+    const zh=(a.title_zh||'').trim(), en=(a.title||'').trim();
+    return state.language==='zh' && zh ? [zh,en] : [en||zh,zh && en ? zh : ''];
+  }
   function qdots(n){
     n=n||0; let h='<div class="qdots" title="品質 '+(n||'—')+'/5">';
     for(let i=1;i<=5;i++) h+='<div class="qdot'+(i<=n?' fill':'')+'"></div>';
@@ -429,19 +446,18 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     list.innerHTML=rows.map(a=>{
       const topics=a.topics.slice(0,3).map(t=>'<span class="tag topic">'+esc(t)+'</span>').join('');
       const flag=a.review?'<span class="qflag">待複核</span>':'';
-      const zh=a.title_zh?'<div class="ctitle-zh">'+esc(a.title_zh)+'</div>':'';
-      const src=a.source?'<span class="src">'+esc(a.source)+'</span>':'';
-      return '<div class="card q'+(a.quality||1)+'" data-pmid="'+a.pmid+'">'+
-        '<div class="ctop"><div class="ctitlewrap"><div class="ctitle">'+esc(a.title)+'</div>'+zh+'</div>'+
-        src+flag+qdots(a.quality)+'</div>'+
-        '<div class="cmeta"><span class="tag design">'+esc(a.design_label)+'</span>'+
-        topics+'<span class="cjournal">'+esc(a.journal)+(a.year?' · '+a.year:'')+'</span></div>'+
-        '<div class="crel">臨床'+relBar(a.rel_clinical,'c')+
-        '　教育'+relBar(a.rel_education,'e')+
-        (a.sample_size?'　<span>n='+a.sample_size+'</span>':'')+'</div>'+
-        '</div>';
+      const [primary,secondary]=titles(a);
+      return '<article class="card" data-pmid="'+esc(a.pmid)+'">'+
+        '<div class="ctop"><div class="ctitlewrap"><h2 class="ctitle">'+esc(primary)+'</h2>'+
+        (secondary?'<p class="ctitle-zh">'+esc(secondary)+'</p>':'')+'</div>'+flag+'</div>'+
+        '<p class="cjournal">'+esc(a.journal)+(a.year?' · '+esc(a.year):'')+'</p>'+
+        '<div class="cmeta"><span class="tag design">'+esc(a.design_label)+'</span>'+topics+'</div>'+
+        '<div class="card-bottom"><div class="crel">'+qdots(a.quality)+'臨床'+relBar(a.rel_clinical,'c')+
+        ' 教育'+relBar(a.rel_education,'e')+(a.sample_size?' <span>n='+esc(a.sample_size)+'</span>':'')+'</div>'+
+        '<div class="card-actions"><a class="pubmed" href="https://pubmed.ncbi.nlm.nih.gov/'+encodeURIComponent(a.pmid)+'/" target="_blank" rel="noopener noreferrer">PubMed ↗</a>'+
+        '<button class="view-analysis" aria-haspopup="dialog">查看分析 <span aria-hidden="true">→</span></button></div></div></article>';
     }).join('');
-    list.querySelectorAll('.card').forEach(c=>c.onclick=()=>openDetail(c.dataset.pmid));
+    list.querySelectorAll('.view-analysis').forEach(b=>b.onclick=()=>openDetail(b.closest('.card').dataset.pmid));
     renderFoot(rows);
   }
   function renderFoot(rows){
@@ -453,6 +469,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
   }
   function openDetail(pmid){
     const a=PULSE_DATA.find(x=>''+x.pmid===''+pmid); if(!a) return;
+    const [primary,secondary]=titles(a);
     const lim=a.limitations||{};
     const limMap={selection_bias:'選擇偏誤',confounding:'干擾因子',missing_data:'資料缺失',other:'其他限制'};
     let limHtml='';
@@ -467,8 +484,8 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     $('#detail').innerHTML=
       '<button class="dclose" id="dclose">✕</button>'+
       '<div class="dpmid">PMID '+esc(a.pmid)+(a.source?'<span class="dsrc">'+esc(a.source)+'</span>':'')+(a.review?'　·　⚠ 待人工複核':'')+'</div>'+
-      '<div class="dtitle">'+esc(a.title)+'</div>'+
-      (a.title_zh?'<div class="dtitle-zh">'+esc(a.title_zh)+'</div>':'')+
+      '<h2 class="dtitle" id="detail-title">'+esc(primary)+'</h2>'+
+      (secondary?'<div class="dtitle-zh">'+esc(secondary)+'</div>':'')+
       '<div class="djournal">'+esc(a.journal)+(a.year?'　·　'+a.year:'')+'</div>'+
       '<div class="dsection"><div class="dh">研究設計</div>'+
       '<div class="drow"><div class="dk">設計</div><div class="dv">'+esc(a.design_label)+
