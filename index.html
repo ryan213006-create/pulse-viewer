@@ -106,11 +106,66 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
 }
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.stamp-m{display:none}
+@media(max-width:820px){
+  header{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .logo{font-size:19px;letter-spacing:1px}.brand{gap:8px}.brand-name{font-size:13px;white-space:nowrap;padding-left:8px}.pulse-line{width:22px}
+  header .stamp{display:none}
+  .stamp-m{display:inline-flex;align-items:center;gap:4px;border:0;background:var(--clear);color:var(--ink2);font-size:13px;white-space:nowrap;padding:6px 0}
+  .stamp-m b{color:var(--ink);font-weight:700}.stamp-m .info{color:var(--signal);font-size:15px}
+  .wrap{padding:0 12px 24px}
+  .section-heading{display:none}
+  .search-area{position:sticky;top:0;z-index:30;background:var(--bg);margin:0 -12px 8px;padding:10px 12px 8px;border-bottom:1px solid var(--line)}
+  .search-area .flabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .search-row{display:flex;gap:8px}
+  .search{padding:10px 12px;font-size:16px}
+  .search::placeholder{font-size:15px}
+  #filter-toggle{margin:0;width:auto;flex:none;white-space:nowrap;padding:10px 12px;font-size:14px}
+  .toolbar{flex-wrap:nowrap;gap:8px;margin-bottom:10px}
+  .count{width:auto;order:0;margin-right:auto;font-size:13px;white-space:nowrap}.count b{font-size:18px}
+  .language,.sortsel{font-size:0}.language select,.sortsel select{font-size:13px;padding:6px 4px}
+  .sortsel label{display:none}
+  .unknown-count{display:none}
+  :root{--footer-h:0px}
+  body{padding-bottom:0}
+  .site-footer{position:static;margin-top:8px}
+  .card{padding:16px}
+}
+
+/* ── 動畫與載入（2026-10-09）── */
+.loading-box{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 0 22px;color:var(--ink2);font-size:15px}
+.loading-ecg{width:120px;height:32px}
+.skel{pointer-events:none}.sk{display:block;height:14px;border-radius:4px;background:var(--panel2);margin:10px 0}
+.sk.w90{width:90%;height:20px}.sk.w70{width:70%;height:20px}.sk.w40{width:40%}.sk.w60{width:60%}.sk.mt{margin-top:22px}
+.search-area{transition:box-shadow 200ms ease}
+.is-loading .toolbar,.is-loading .stamp-m,.is-loading #unknown-count{visibility:hidden}
+@media(prefers-reduced-motion:no-preference){
+  .loading-ecg polyline{stroke-dasharray:100;animation:ecg-loop 1.4s linear infinite}
+  @keyframes ecg-loop{0%{stroke-dashoffset:100}60%{stroke-dashoffset:0}100%{stroke-dashoffset:-100}}
+  .sk{animation:sk-pulse 1.2s ease-in-out infinite}
+  @keyframes sk-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .count b.bump{animation:cnt-bump 300ms ease-out}
+  @keyframes cnt-bump{0%{color:var(--signal);transform:scale(1.12)}100%{color:var(--ink);transform:scale(1)}}
+  .count b{display:inline-block}
+  .pulse-line.beat polyline{animation:pulse-draw 500ms ease-out both}
+  button,.chip,.view-analysis,a.pubmed{transition:transform 100ms ease}
+  button:active,.chip:active,.view-analysis:active{transform:scale(.97)}
+  @media(max-width:820px){
+    #filters.mobile-open{animation:sheet-up 250ms ease-out}
+    @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  }
+}
+@media(max-width:820px){
+  .search-area.stuck{box-shadow:0 4px 12px var(--card-shadow)}
+  #filters.mobile-open{align-self:stretch;top:10dvh;border-radius:16px 16px 0 0;box-shadow:0 0 0 100vmax var(--scrim)}
+}
 </style>
 </head>
-<body>
+<body class="is-loading">
 <header>
   <div class="brand"><span class="logo">PULSE</span><svg class="pulse-line" viewBox="0 0 44 24" aria-hidden="true"><polyline pathLength="100" points="0,12 12,12 17,5 23,20 29,8 33,12 44,12" fill="none" stroke="var(--signal)" stroke-width="2"/></svg><span class="brand-name">院前實證知識庫</span></div>
+  <button type="button" class="stamp-m" id="stamp-m" aria-label="資料說明"><b id="stamp-m-total">—</b> 篇 · 更新 <span id="stamp-m-date">—</span> <span class="info">ⓘ</span></button>
   <div class="stamp">資料來源：PubMed、CINAHL · 涵蓋 <b id="stamp-range">—</b><br>資料更新 <b id="stamp-date">—</b> · AI 依摘要初步分析 · 共 <b id="stamp-total">—</b> 篇文獻</div>
 </header>
 
@@ -170,10 +225,10 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
     <section class="search-area" aria-label="搜尋文獻"><div class="section-heading"><div><h1>探索院前實證</h1></div><p>從文獻出發，讓專業判讀更有依據。</p></div>
     <div class="fgroup">
       <label class="flabel" for="q">關鍵字（標題）</label>
-      <input class="search" id="q" placeholder="中英文關鍵字皆可…" autocomplete="off">
+      <div class="search-row"><input class="search" id="q" placeholder="中英文關鍵字皆可…" autocomplete="off">
+      <button class="mobile-only" id="filter-toggle" aria-expanded="false" aria-controls="filters">篩選條件（0）</button></div>
     </div>
     </section>
-    <button class="mobile-only" id="filter-toggle" aria-expanded="false" aria-controls="filters">篩選條件（0）</button>
     <div id="selected-filters" class="selected-filters" aria-label="已選條件"></div>
     <div class="toolbar">
       <label class="language">標題語言 <select id="language"><option value="zh">中文優先</option><option value="en">英文優先</option></select></label>
@@ -190,7 +245,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
       </div>
     </div>
     <p id="unknown-count" class="unknown-count" aria-live="polite"></p>
-    <div id="list"></div>
+    <div id="list"><div class="loading-box" aria-live="polite"><svg class="loading-ecg" viewBox="0 0 120 32" aria-hidden="true"><polyline pathLength="100" points="0,16 30,16 38,16 44,6 52,28 60,10 66,16 120,16" fill="none" stroke="var(--signal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><p>正在載入文獻資料…</p></div><div class="card skel" aria-hidden="true"><i class="sk w90"></i><i class="sk w70"></i><i class="sk w40"></i><i class="sk w60 mt"></i></div><div class="card skel" aria-hidden="true"><i class="sk w90"></i><i class="sk w70"></i><i class="sk w40"></i><i class="sk w60 mt"></i></div><div class="card skel" aria-hidden="true"><i class="sk w90"></i><i class="sk w70"></i><i class="sk w40"></i><i class="sk w60 mt"></i></div></div>
     <div class="footnote" id="foot"></div>
   </main>
 </div>
@@ -507,6 +562,37 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
   matchMedia('(min-width:821px)').addEventListener('change',e=>{if(e.matches&&$('#filters').classList.contains('mobile-open'))setFilters(false);});
 
   render();
+})();
+</script>
+<script>
+(function(){
+  document.body.classList.remove('is-loading');
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ② 篇數提示 + ⑥ 心電圖跳一下：結果數改變時
+  var cnt=document.getElementById('cnt'),line=document.querySelector('header .pulse-line'),last=cnt.textContent;
+  new MutationObserver(function(){
+    if(cnt.textContent===last||reduce){last=cnt.textContent;return;}
+    last=cnt.textContent;
+    [[cnt,'bump'],[line,'beat']].forEach(function(p){if(!p[0])return;p[0].classList.remove(p[1]);void p[0].getBoundingClientRect();p[0].classList.add(p[1]);});
+  }).observe(cnt,{childList:true,characterData:true,subtree:true});
+  // ④ 搜尋列固定時的陰影
+  var sa=document.querySelector('.search-area');
+  function onScroll(){sa.classList.toggle('stuck',sa.getBoundingClientRect().top<=0&&window.scrollY>10);}
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+})();
+</script>
+<script>
+(function(){
+  function fill(){
+    try{
+      var t=document.getElementById('stamp-total').textContent;
+      var d=String(PULSE_META.generated||'').slice(5).replace('-','/');
+      document.getElementById('stamp-m-total').textContent=t;
+      document.getElementById('stamp-m-date').textContent=d;
+    }catch(e){}
+  }
+  window.addEventListener('load',fill);
+  document.getElementById('stamp-m').addEventListener('click',function(){document.getElementById('about-btn').click()});
 })();
 </script>
 </body>
