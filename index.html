@@ -258,7 +258,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);fon
 </div>
 
 <footer class="site-footer"><span>製作：柯廷儒<span class="footer-org"><span class="sep"> · </span>新北市消防局 Paramedic</span></span><button id="about-btn" type="button">關於 PULSE</button></footer>
-<dialog id="about" class="guide" aria-labelledby="about-title"><button id="about-close" class="guide-close" aria-label="關閉關於 PULSE">×</button><h2 id="about-title">關於 PULSE</h2><p>院前實證知識庫，持續監測與整理院前救護文獻。</p><p>製作：柯廷儒<br>新北市消防局 Paramedic</p><p>資料來源：PubMed、CINAHL（涵蓋 2025/09 起）。AI 依摘要初步分析；中文標題為輔助參考，以原文為準。僅供實證檢索，非臨床決策依據。</p></dialog>
+<dialog id="about" class="guide" aria-labelledby="about-title"><button id="about-close" class="guide-close" aria-label="關閉關於 PULSE">×</button><h2 id="about-title">關於 PULSE</h2><p>院前實證知識庫，持續監測與整理院前救護文獻。</p><p>製作：柯廷儒<br>新北市消防局 Paramedic</p><p>資料來源：PubMed、CINAHL（涵蓋 <span class="cover-start">2025/01</span> 起）。AI 依摘要初步分析；中文標題為輔助參考，以原文為準。僅供實證檢索，非臨床決策依據。</p></dialog>
 <!-- 評分說明面板 -->
 <div class="guide-overlay" id="guide-overlay"></div>
 <dialog class="guide" id="guide" aria-labelledby="guide-title">
@@ -317,7 +317,9 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
   const state = { q:'', topics:new Set(), designs:new Set(),
     quality:0, clin:0, edu:0, review:0, sort:'quality', language:'zh', includeUnknown:false };
   document.getElementById('stamp-date').textContent = PULSE_META.generated;
-  document.getElementById('stamp-range').textContent = '2025/09 ～ ' + String(PULSE_META.generated).replace(/-/g,'/');
+  const COVER_START = PULSE_META.coverage_start || '2025/01';  // 2026-11-06：由 report.py 依資料最早上架月份產生，不再寫死
+  document.getElementById('stamp-range').textContent = COVER_START + ' ～ ' + String(PULSE_META.generated).replace(/-/g,'/');
+  document.querySelectorAll('.cover-start').forEach(el => el.textContent = COVER_START);
   document.getElementById('stamp-total').textContent = PULSE_META.total;
   document.getElementById('cnt-total').textContent = PULSE_META.total;
   const topicCount = {};
@@ -484,7 +486,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     renderFoot(rows);
   }
   function renderFoot(rows){
-    $('#foot').textContent='資料來源：PubMed、CINAHL（涵蓋 2025/09 起）。AI 依摘要初步分析；中文標題為輔助參考，以原文為準。僅供院前實證檢索，非臨床決策依據。';
+    $('#foot').textContent='資料來源：PubMed、CINAHL（涵蓋 '+COVER_START+' 起）。AI 依摘要初步分析；中文標題為輔助參考，以原文為準。僅供院前實證檢索，非臨床決策依據。';
   }
 
   function openDetail(pmid){
