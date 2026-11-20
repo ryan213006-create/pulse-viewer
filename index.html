@@ -344,17 +344,23 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
       c.classList.contains('on')?state.topics.add(t):state.topics.delete(t);render();};
     topicBox.appendChild(c);
   });
+  // 2026-11-21：研究設計篩選鈕的分組鍵。設計判為 unclear 但已依 PubMed 文章類型標為
+  // 回顧／社論／勘誤等（a.doctype）的文章，歸到「非原始研究」那一顆，不再混在「待複核」裡。
+  const dkey=a=>a.doctype?'non_research_article':a.design;
+  const DLABEL_OVERRIDE={non_research_article:'非原始研究'};
+  const dlabel=d=>DLABEL_OVERRIDE[d]||PULSE_META.design_label[d]||d;
   const designCount={};
-  PULSE_DATA.forEach(a=>designCount[a.design]=(designCount[a.design]||0)+1);
+  PULSE_DATA.forEach(a=>{const k=dkey(a);designCount[k]=(designCount[k]||0)+1;});
   const designBox=$('#f-design');
   const dorder=['RCT','cluster_RCT','systematic_review_meta','cohort_prospective',
     'cohort_retrospective','case_control','cross_sectional','before_after',
-    'educational_intervention','simulation_study','qualitative','case_series','unclear'];
+    'educational_intervention','simulation_study','qualitative','case_series',
+    'ecological_time_series','guideline_consensus','non_research_article','unclear'];
   dorder.forEach(d=>{
     if(!designCount[d]) return;
     const c=document.createElement('button');
     c.className='chip'; c.dataset.v=d;
-    c.innerHTML=PULSE_META.design_label[d]+'<span class="n">'+designCount[d]+'</span>';
+    c.innerHTML=dlabel(d)+'<span class="n">'+designCount[d]+'</span>';
     c.onclick=()=>{c.classList.toggle('on');
       c.classList.contains('on')?state.designs.add(d):state.designs.delete(d);render();};
     designBox.appendChild(c);
@@ -387,7 +393,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
     const items=[];
     if(state.q)items.push(['關鍵字：'+state.q,()=>{state.q='';$('#q').value='';}]);
     state.topics.forEach(t=>items.push([t,()=>state.topics.delete(t)]));
-    state.designs.forEach(d=>items.push([PULSE_META.design_label[d],()=>state.designs.delete(d)]));
+    state.designs.forEach(d=>items.push([dlabel(d),()=>state.designs.delete(d)]));
     for(const [key,label] of [['quality','品質'],['clin','臨床'],['edu','教育']])if(state[key])items.push([label+' ≥ '+state[key],()=>state[key]=0]);
     $('#include-unknown').checked=state.includeUnknown;
     if(state.includeUnknown)items.push(['包含未判定',()=>state.includeUnknown=false]);
@@ -429,7 +435,7 @@ if (typeof PULSE_DATA === "undefined" || typeof PULSE_META === "undefined") {
       if(!hay.includes(state.q)) return false;
     }
     if(state.topics.size && !a.topics.some(t=>state.topics.has(t))) return false;
-    if(state.designs.size && !state.designs.has(a.design)) return false;
+    if(state.designs.size && !state.designs.has(dkey(a))) return false;
     if(state.quality && !(state.includeUnknown && isUnknown(a.quality)) && (a.quality||0) < state.quality) return false;
     if(state.clin && !(state.includeUnknown && isUnknown(a.rel_clinical)) && (a.rel_clinical||0) < state.clin) return false;
     if(state.edu && !(state.includeUnknown && isUnknown(a.rel_education)) && (a.rel_education||0) < state.edu) return false;
